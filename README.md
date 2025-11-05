@@ -34,7 +34,7 @@
 
 ```bash
 # Clone repository
-git clone https://github.com/BukeLy/DeepSeek-OCR-SDK.git
+git clone https://github.com/BukeLy/DeepSeek-OCR-SDK
 cd DeepSeek-OCR-SDK
 
 # Install with uv (recommended)
@@ -242,7 +242,7 @@ except Exception as e:
 
 ```bash
 # Clone repository
-git clone https://github.com/BukeLy/DeepSeek-OCR-SDK.git
+git clone https://github.com/BukeLy/DeepSeek-OCR-SDK
 cd DeepSeek-OCR-SDK
 
 # Install dependencies with uv
@@ -324,7 +324,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ```bash
 # 克隆仓库
-git clone https://github.com/BukeLy/DeepSeek-OCR-SDK.git
+git clone https://github.com/BukeLy/DeepSeek-OCR-SDK
 cd DeepSeek-OCR-SDK
 
 # 使用 uv 安装（推荐）
@@ -532,8 +532,8 @@ except Exception as e:
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/deepseek-ocr-sdk.git
-cd deepseek-ocr-sdk
+git clone https://github.com/BukeLy/DeepSeek-OCR-SDK
+cd DeepSeek-OCR-SDK
 
 # 使用 uv 安装依赖
 uv sync --all-extras
