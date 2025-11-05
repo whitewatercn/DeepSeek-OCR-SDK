@@ -240,8 +240,8 @@ except Exception as e:
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/deepseek-ocr-sdk.git
-cd deepseek-ocr-sdk
+git clone https://github.com/BukeLy/DeepSeek-OCR-SDK.git
+cd DeepSeek-OCR-SDK
 
 # Install dependencies with uv
 uv sync --all-extras
