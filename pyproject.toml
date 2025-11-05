@@ -7,7 +7,7 @@ name = "deepseek-ocr"
 version = "0.1.0"
 description = "A simple and efficient Python SDK for DeepSeek-OCR API"
 readme = "README.md"
-requires-python = ">=3.8.1"
+requires-python = ">=3.10"
 license = "MIT"
 authors = [
     {name = "Chengjie", email = "buledream233@gmail.com"}
@@ -17,8 +17,6 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -58,7 +56,7 @@ include = ["deepseek_ocr*"]
 
 [tool.black]
 line-length = 88
-target-version = ['py38']
+target-version = ['py310']
 include = '\.pyi?$'
 
 [tool.isort]
