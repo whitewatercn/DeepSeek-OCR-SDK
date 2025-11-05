@@ -30,16 +30,18 @@
 
 ### Installation
 
-#### Using uv (recommended)
+**Install from source:**
 
 ```bash
-uv add deepseek-ocr
-```
+# Clone repository
+git clone https://github.com/BukeLy/DeepSeek-OCR-SDK.git
+cd DeepSeek-OCR-SDK
 
-#### Using pip
+# Install with uv (recommended)
+uv sync
 
-```bash
-pip install deepseek-ocr
+# Or install with pip
+pip install -e .
 ```
 
 ### Quick Start
@@ -318,16 +320,18 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### 安装
 
-#### 使用 uv（推荐）
+**从源码安装：**
 
 ```bash
-uv add deepseek-ocr
-```
+# 克隆仓库
+git clone https://github.com/BukeLy/DeepSeek-OCR-SDK.git
+cd DeepSeek-OCR-SDK
 
-#### 使用 pip
+# 使用 uv 安装（推荐）
+uv sync
 
-```bash
-pip install deepseek-ocr
+# 或使用 pip 安装
+pip install -e .
 ```
 
 ### 快速开始
