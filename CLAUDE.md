@@ -80,7 +80,6 @@ npm install -g markdown-link-check
 # 检查所有 Markdown 文件的链接
 markdown-link-check README.md --config .github/markdown-link-check-config.json
 markdown-link-check docs/API_REFERENCE.md --config .github/markdown-link-check-config.json
-markdown-link-check docs/BENCHMARKS.md --config .github/markdown-link-check-config.json
 ```
 
 **所有链接检查必须通过（✅）后才能 commit**
@@ -361,11 +360,113 @@ uv run pytest tests/ -v
 
 ### 相关文档
 
-- [CODE_QUALITY_GUIDE.md](./CODE_QUALITY_GUIDE.md) - Flake8 规则说明
 - [PEP 484 - Type Hints](https://peps.python.org/pep-0484/)
 - [mypy 官方文档](https://mypy.readthedocs.io/)
 
 ---
 
+## Documentation Workflow 失败教训
+
+### 问题根源
+
+**2025-01-05 教训：Documentation workflow 连续失败**
+
+**根本原因：删除文件后未同步更新引用该文件的文档**
+
+### 失败案例记录
+
+#### 案例 1：删除文档文件后未更新 CLAUDE.md 中的引用
+
+**时间：** 2025-01-05
+**Commit：** `docs: simplify project documentation`
+
+**操作：**
+- 删除了 `BENCHMARKS.md`, `CODE_QUALITY_GUIDE.md`, `CONTRIBUTING.md` 等文档文件
+
+**遗漏：**
+- ❌ CLAUDE.md 第 83 行仍然包含 `markdown-link-check docs/BENCHMARKS.md` 命令
+- ❌ CLAUDE.md 第 364 行仍然包含 `[CODE_QUALITY_GUIDE.md](./CODE_QUALITY_GUIDE.md)` 链接
+
+**结果：**
+- Documentation workflow 中的 markdown-link-check 检测到死链接
+- 报错：`[✖] ./CODE_QUALITY_GUIDE.md → Status: 400`
+
+### 强制检查清单
+
+**删除任何文件前，必须执行以下检查：**
+
+```bash
+# 1. 查找所有引用该文件的地方
+FILE_TO_DELETE="BENCHMARKS.md"
+grep -r "$FILE_TO_DELETE" . --include="*.md" --include="*.py" --include="*.yml" | grep -v ".git"
+
+# 2. 检查 markdown-link-check 配置
+grep -r "$FILE_TO_DELETE" .github/
+
+# 3. 执行本地 markdown-link-check（必须！）
+markdown-link-check README.md --config .github/markdown-link-check-config.json
+markdown-link-check docs/API_REFERENCE.md --config .github/markdown-link-check-config.json
+markdown-link-check CLAUDE.md --config .github/markdown-link-check-config.json
+
+# 4. 所有链接检查通过后才能 commit
+```
+
+### 防范措施
+
+#### 强制规则
+
+1. **删除文件时的 3 步检查法：**
+   - 第 1 步：`grep` 搜索所有引用
+   - 第 2 步：删除或更新所有引用
+   - 第 3 步：本地运行 markdown-link-check 验证
+
+2. **Commit 前必做检查：**
+   ```bash
+   # 完整的本地验证流程
+   markdown-link-check README.md --config .github/markdown-link-check-config.json
+   markdown-link-check docs/API_REFERENCE.md --config .github/markdown-link-check-config.json
+   markdown-link-check CLAUDE.md --config .github/markdown-link-check-config.json
+   ```
+
+3. **特别注意的文件：**
+   - `CLAUDE.md` - 开发指南（经常包含其他文档的链接）
+   - `README.md` - 主文档（包含大量外部和内部链接）
+   - `docs/API_REFERENCE.md` - API 文档
+
+#### 自动化建议
+
+可以创建 pre-commit hook 自动检查：
+
+```bash
+#!/bin/bash
+# .git/hooks/pre-commit
+
+echo "Running markdown link check..."
+for file in README.md docs/API_REFERENCE.md CLAUDE.md; do
+    if [ -f "$file" ]; then
+        markdown-link-check "$file" --config .github/markdown-link-check-config.json || exit 1
+    fi
+done
+```
+
+### 经验总结
+
+**核心原则：**
+> **删除文件 = 删除文件 + 删除所有引用 + 本地验证**
+
+**永远不要：**
+- ❌ 删除文件后直接 commit（没有检查引用）
+- ❌ 依赖 GitHub Actions 发现死链接（应该在本地发现）
+- ❌ 批量删除多个文件而不逐个检查引用
+
+**永远要做：**
+- ✅ 删除前用 `grep` 全局搜索文件名
+- ✅ 更新或删除所有找到的引用
+- ✅ 本地运行 markdown-link-check 验证
+- ✅ 确认所有链接检查通过后再 commit
+
+---
+
 **最后更新：** 2025-01-05
 **错误修复记录：** 从 21 个 mypy 错误降至 0 个
+**Documentation 失败次数：** 4 次（已记录并制定防范措施）
