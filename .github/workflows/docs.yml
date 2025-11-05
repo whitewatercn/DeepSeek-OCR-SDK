@@ -24,4 +24,4 @@ jobs:
     - name: Validate Mermaid diagrams
       run: |
         # Check if mermaid diagrams are valid
-        grep -r "```mermaid" . --include="*.md" || true
+        grep -r '```mermaid' . --include="*.md" || true
