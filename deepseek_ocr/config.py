@@ -221,7 +221,9 @@ class OCRConfig:
 
         enable_rate_limit_retry_val = overrides.get("enable_rate_limit_retry")
         if enable_rate_limit_retry_val is None:
-            enable_rate_limit_retry_val = os.getenv("DS_OCR_ENABLE_RATE_LIMIT_RETRY", "true")
+            enable_rate_limit_retry_val = os.getenv(
+                "DS_OCR_ENABLE_RATE_LIMIT_RETRY", "true"
+            )
         if isinstance(enable_rate_limit_retry_val, bool):
             enable_rate_limit_retry = enable_rate_limit_retry_val
         else:

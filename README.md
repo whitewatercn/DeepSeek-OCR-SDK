@@ -223,6 +223,12 @@ export DS_OCR_FALLBACK_ENABLED=true
 export DS_OCR_FALLBACK_MODE="grounding"
 export DS_OCR_MIN_OUTPUT_THRESHOLD=500
 export DS_OCR_PAGE_SEPARATOR="\n\n---\n\n"  # Separator between pages in multi-page PDFs
+
+# Rate Limiting Configuration (NEW)
+export DS_OCR_REQUEST_DELAY=0.0  # Delay in seconds between requests (0 = no delay)
+export DS_OCR_ENABLE_RATE_LIMIT_RETRY=true  # Enable automatic retry on 429 errors
+export DS_OCR_MAX_RATE_LIMIT_RETRIES=3  # Maximum number of retries for rate limit errors
+export DS_OCR_RATE_LIMIT_RETRY_DELAY=5.0  # Initial delay before retrying (uses exponential backoff)
 ```
 
 **Available API Providers**:
@@ -249,6 +255,91 @@ config = OCRConfig.from_env(api_key="your_api_key", dpi=300)
 client = DeepSeekOCR(api_key=config.api_key, base_url=config.base_url)
 ```
 
+### Rate Limiting
+
+The SDK provides built-in rate limiting to prevent hitting API limits (TPM/RPM).
+
+#### Manual Rate Control
+
+Set a delay between requests to stay within rate limits:
+
+```python
+from deepseek_ocr import DeepSeekOCR
+
+# Set 2-second delay between requests
+client = DeepSeekOCR(
+    api_key="your_api_key",
+    base_url="https://api.siliconflow.cn/v1/chat/completions",
+    request_delay=2.0  # Delay in seconds between API requests
+)
+
+# The SDK will automatically wait between requests
+text1 = client.parse("doc1.pdf")  # Request made immediately
+text2 = client.parse("doc2.pdf")  # Waits 2 seconds from previous request
+```
+
+#### Automatic 429 Retry
+
+The SDK automatically handles rate limit errors (429) with exponential backoff:
+
+```python
+from deepseek_ocr import DeepSeekOCR, RateLimitError
+
+client = DeepSeekOCR(
+    api_key="your_api_key",
+    base_url="https://api.siliconflow.cn/v1/chat/completions",
+    enable_rate_limit_retry=True,  # Enable auto-retry (default: True)
+    max_rate_limit_retries=3,  # Max retry attempts (default: 3)
+    rate_limit_retry_delay=5.0  # Initial backoff delay (default: 5.0s)
+)
+
+try:
+    # If rate limited, SDK will retry up to 3 times with exponential backoff:
+    # - 1st retry: wait 5 seconds
+    # - 2nd retry: wait 10 seconds
+    # - 3rd retry: wait 20 seconds
+    text = client.parse("document.pdf")
+except RateLimitError as e:
+    print(f"Rate limit exceeded after retries: {e}")
+```
+
+#### Combining Both Approaches
+
+For best results, combine request delay with retry:
+
+```python
+client = DeepSeekOCR(
+    api_key="your_api_key",
+    base_url="https://api.siliconflow.cn/v1/chat/completions",
+    request_delay=1.0,  # Wait 1 second between requests
+    enable_rate_limit_retry=True,  # Auto-retry on 429
+    max_rate_limit_retries=3
+)
+```
+
+**TPM/RPM Calculation Examples**:
+
+For L0 tier (TPM: 80,000, RPM: 1,000):
+- Average 1000 tokens per request → ~80 requests/minute max
+- Safe rate: 60 requests/minute → `request_delay=1.0` (1 second)
+
+For batch processing with concurrent requests:
+```python
+from deepseek_ocr import BatchProcessor
+
+client = DeepSeekOCR(
+    api_key="your_api_key",
+    base_url="https://api.siliconflow.cn/v1/chat/completions",
+    request_delay=2.0  # 2-second delay per request
+)
+
+processor = BatchProcessor(
+    client,
+    max_concurrent=3  # Process 3 files concurrently
+)
+# Effective rate: ~1.5 requests/second (30 seconds for 3 files)
+```
+
 ### DPI Recommendations
 
 - **150 DPI**: May cause hallucinations, not recommended
@@ -258,7 +349,7 @@ client = DeepSeekOCR(api_key=config.api_key, base_url=config.base_url)
 ### Error Handling
 
 ```python
-from deepseek_ocr import DeepSeekOCR, APIError, FileProcessingError
+from deepseek_ocr import DeepSeekOCR, APIError, FileProcessingError, RateLimitError
 
 client = DeepSeekOCR(
     api_key="your_api_key",
@@ -269,6 +360,8 @@ try:
     text = client.parse("document.pdf")
 except FileProcessingError as e:
     print(f"File error: {e}")
+except RateLimitError as e:
+    print(f"Rate limit error: {e.status_code} - {e}")
 except APIError as e:
     print(f"API error: {e.status_code} - {e}")
 except Exception as e:
@@ -543,6 +636,12 @@ export DS_OCR_FALLBACK_ENABLED=true
 export DS_OCR_FALLBACK_MODE="grounding"
 export DS_OCR_MIN_OUTPUT_THRESHOLD=500
 export DS_OCR_PAGE_SEPARATOR="\n\n---\n\n"  # Separator between pages in multi-page PDFs
+
+# 速率限制配置（新增）
+export DS_OCR_REQUEST_DELAY=0.0  # 请求之间的延迟秒数（0 = 无延迟）
+export DS_OCR_ENABLE_RATE_LIMIT_RETRY=true  # 启用 429 错误自动重试
+export DS_OCR_MAX_RATE_LIMIT_RETRIES=3  # 速率限制错误的最大重试次数
+export DS_OCR_RATE_LIMIT_RETRY_DELAY=5.0  # 重试前的初始延迟（使用指数退避）
 ```
 
 **可用的 API 提供商**：
@@ -569,6 +668,91 @@ config = OCRConfig.from_env(api_key="your_api_key", dpi=300)
 client = DeepSeekOCR(api_key=config.api_key, base_url=config.base_url)
 ```
 
+### 速率限制
+
+SDK 提供内置的速率限制功能，防止超过 API 限制（TPM/RPM）。
+
+#### 手动速率控制
+
+设置请求之间的延迟以保持在速率限制内：
+
+```python
+from deepseek_ocr import DeepSeekOCR
+
+# 设置请求之间 2 秒延迟
+client = DeepSeekOCR(
+    api_key="your_api_key",
+    base_url="https://api.siliconflow.cn/v1/chat/completions",
+    request_delay=2.0  # API 请求之间的延迟秒数
+)
+
+# SDK 会自动在请求之间等待
+text1 = client.parse("doc1.pdf")  # 立即发起请求
+text2 = client.parse("doc2.pdf")  # 从上次请求起等待 2 秒
+```
+
+#### 自动 429 重试
+
+SDK 自动处理速率限制错误（429），使用指数退避：
+
+```python
+from deepseek_ocr import DeepSeekOCR, RateLimitError
+
+client = DeepSeekOCR(
+    api_key="your_api_key",
+    base_url="https://api.siliconflow.cn/v1/chat/completions",
+    enable_rate_limit_retry=True,  # 启用自动重试（默认：True）
+    max_rate_limit_retries=3,  # 最大重试次数（默认：3）
+    rate_limit_retry_delay=5.0  # 初始退避延迟（默认：5.0秒）
+)
+
+try:
+    # 如果遇到速率限制，SDK 将重试最多 3 次，使用指数退避：
+    # - 第 1 次重试：等待 5 秒
+    # - 第 2 次重试：等待 10 秒
+    # - 第 3 次重试：等待 20 秒
+    text = client.parse("document.pdf")
+except RateLimitError as e:
+    print(f"重试后仍超过速率限制: {e}")
+```
+
+#### 组合两种方法
+
+为获得最佳效果，组合请求延迟和重试：
+
+```python
+client = DeepSeekOCR(
+    api_key="your_api_key",
+    base_url="https://api.siliconflow.cn/v1/chat/completions",
+    request_delay=1.0,  # 请求之间等待 1 秒
+    enable_rate_limit_retry=True,  # 启用 429 自动重试
+    max_rate_limit_retries=3
+)
+```
+
+**TPM/RPM 计算示例**：
+
+对于 L0 级别（TPM: 80,000，RPM: 1,000）：
+- 平均每个请求 1000 个 token → 最多 ~80 请求/分钟
+- 安全速率：60 请求/分钟 → `request_delay=1.0`（1 秒）
+
+对于具有并发请求的批处理：
+```python
+from deepseek_ocr import BatchProcessor
+
+client = DeepSeekOCR(
+    api_key="your_api_key",
+    base_url="https://api.siliconflow.cn/v1/chat/completions",
+    request_delay=2.0  # 每个请求 2 秒延迟
+)
+
+processor = BatchProcessor(
+    client,
+    max_concurrent=3  # 并发处理 3 个文件
+)
+# 有效速率：~1.5 请求/秒（3 个文件 30 秒）
+```
+
 ### DPI 推荐
 
 - **150 DPI**：可能产生幻觉，不推荐
@@ -578,7 +762,7 @@ client = DeepSeekOCR(api_key=config.api_key, base_url=config.base_url)
 ### 错误处理
 
 ```python
-from deepseek_ocr import DeepSeekOCR, APIError, FileProcessingError
+from deepseek_ocr import DeepSeekOCR, APIError, FileProcessingError, RateLimitError
 
 client = DeepSeekOCR(
     api_key="your_api_key",
@@ -589,6 +773,8 @@ try:
     text = client.parse("document.pdf")
 except FileProcessingError as e:
     print(f"文件错误: {e}")
+except RateLimitError as e:
+    print(f"速率限制错误: {e.status_code} - {e}")
 except APIError as e:
     print(f"API 错误: {e.status_code} - {e}")
 except Exception as e:

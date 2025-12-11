@@ -28,6 +28,10 @@ DeepSeekOCR(
     timeout: Optional[int] = None,
     max_tokens: Optional[int] = None,
     dpi: Optional[int] = None,
+    request_delay: Optional[float] = None,
+    enable_rate_limit_retry: Optional[bool] = None,
+    max_rate_limit_retries: Optional[int] = None,
+    rate_limit_retry_delay: Optional[float] = None,
     **kwargs
 )
 ```
@@ -42,6 +46,10 @@ DeepSeekOCR(
 - `timeout` (int, optional): Request timeout in seconds. Defaults to 60.
 - `max_tokens` (int, optional): Maximum tokens in response. Defaults to 4000.
 - `dpi` (int, optional): DPI for PDF to image conversion (150, 200, or 300). Defaults to 200.
+- `request_delay` (float, optional): Delay in seconds between API requests to prevent rate limiting. Defaults to 0.0 (no delay).
+- `enable_rate_limit_retry` (bool, optional): Enable automatic retry on 429 rate limit errors. Defaults to True.
+- `max_rate_limit_retries` (int, optional): Maximum number of retries for rate limit errors. Defaults to 3.
+- `rate_limit_retry_delay` (float, optional): Initial delay in seconds before retrying after 429 error (uses exponential backoff). Defaults to 5.0.
 - `**kwargs`: Additional configuration parameters.
 
 **Raises:**
@@ -76,6 +84,7 @@ Parse document synchronously.
 
 - `FileProcessingError`: If file cannot be processed.
 - `APIError`: If API returns an error.
+- `RateLimitError`: If rate limit is exceeded and retries exhausted.
 - `TimeoutError`: If request times out.
 
 **Example:**
@@ -454,6 +463,34 @@ try:
     text = client.parse("large_document.pdf")
 except TimeoutError as e:
     print(f"Request timed out: {e}")
+```
+
+### RateLimitError
+
+Raised when API returns a 429 rate limit error and retries are exhausted.
+
+```python
+class RateLimitError(APIError)
+```
+
+**Attributes:**
+
+- `status_code` (int): Always 429 for rate limit errors.
+- `response_text` (str, optional): Raw response text from the API.
+
+**Example:**
+
+```python
+try:
+    client = DeepSeekOCR(
+        api_key="xxx",
+        enable_rate_limit_retry=True,
+        max_rate_limit_retries=3
+    )
+    text = client.parse("document.pdf")
+except RateLimitError as e:
+    print(f"Rate limit exceeded after retries: {e}")
+    print(f"Response: {e.response_text}")
 ```
 
 ### InvalidModeError
