@@ -36,6 +36,14 @@ class OCRConfig:
             fallback
         DS_OCR_PAGE_SEPARATOR: Separator used between pages in
             multi-page results
+        DS_OCR_REQUEST_DELAY: Delay in seconds between API requests
+            to prevent rate limiting
+        DS_OCR_ENABLE_RATE_LIMIT_RETRY: Enable automatic retry on
+            429 rate limit errors
+        DS_OCR_MAX_RATE_LIMIT_RETRIES: Maximum number of retries for
+            rate limit errors
+        DS_OCR_RATE_LIMIT_RETRY_DELAY: Initial delay in seconds before
+            retrying after 429 error
 
     Attributes:
         api_key: API key for authentication (required).
@@ -54,6 +62,14 @@ class OCRConfig:
             fallback.
         page_separator: Separator string used between pages in
             multi-page results.
+        request_delay: Delay in seconds between API requests to
+            prevent rate limiting (0 = no delay).
+        enable_rate_limit_retry: Enable automatic retry on 429 rate
+            limit errors.
+        max_rate_limit_retries: Maximum number of retries for rate
+            limit errors.
+        rate_limit_retry_delay: Initial delay in seconds before
+            retrying after 429 error (uses exponential backoff).
     """
 
     api_key: str
@@ -67,6 +83,10 @@ class OCRConfig:
     fallback_mode: str = "grounding"
     min_output_threshold: int = 500
     page_separator: str = "\n\n---\n\n"
+    request_delay: float = 0.0
+    enable_rate_limit_retry: bool = True
+    max_rate_limit_retries: int = 3
+    rate_limit_retry_delay: float = 5.0
 
     def __post_init__(self) -> None:
         """Validate configuration after initialization."""
@@ -105,6 +125,23 @@ class OCRConfig:
             raise ConfigurationError(
                 f"min_output_threshold must be non-negative. "
                 f"Got: {self.min_output_threshold}"
+            )
+
+        if self.request_delay < 0:
+            raise ConfigurationError(
+                f"request_delay must be non-negative. Got: {self.request_delay}"
+            )
+
+        if self.max_rate_limit_retries < 0:
+            raise ConfigurationError(
+                f"max_rate_limit_retries must be non-negative. "
+                f"Got: {self.max_rate_limit_retries}"
+            )
+
+        if self.rate_limit_retry_delay < 0:
+            raise ConfigurationError(
+                f"rate_limit_retry_delay must be non-negative. "
+                f"Got: {self.rate_limit_retry_delay}"
             )
 
     @classmethod
@@ -176,6 +213,40 @@ class OCRConfig:
             or os.getenv("DS_OCR_PAGE_SEPARATOR", "\n\n---\n\n"),
         )
 
+        request_delay_str = cast(
+            str,
+            overrides.get("request_delay") or os.getenv("DS_OCR_REQUEST_DELAY", "0.0"),
+        )
+        request_delay = float(request_delay_str)
+
+        enable_rate_limit_retry_val = overrides.get("enable_rate_limit_retry")
+        if enable_rate_limit_retry_val is None:
+            enable_rate_limit_retry_val = os.getenv(
+                "DS_OCR_ENABLE_RATE_LIMIT_RETRY", "true"
+            )
+        if isinstance(enable_rate_limit_retry_val, bool):
+            enable_rate_limit_retry = enable_rate_limit_retry_val
+        else:
+            enable_rate_limit_retry = str(enable_rate_limit_retry_val).lower() in (
+                "true",
+                "1",
+                "yes",
+            )
+
+        max_rate_limit_retries_str = cast(
+            str,
+            overrides.get("max_rate_limit_retries")
+            or os.getenv("DS_OCR_MAX_RATE_LIMIT_RETRIES", "3"),
+        )
+        max_rate_limit_retries = int(max_rate_limit_retries_str)
+
+        rate_limit_retry_delay_str = cast(
+            str,
+            overrides.get("rate_limit_retry_delay")
+            or os.getenv("DS_OCR_RATE_LIMIT_RETRY_DELAY", "5.0"),
+        )
+        rate_limit_retry_delay = float(rate_limit_retry_delay_str)
+
         return cls(
             api_key=api_key,
             base_url=base_url,
@@ -188,4 +259,8 @@ class OCRConfig:
             fallback_mode=fallback_mode,
             min_output_threshold=min_output_threshold,
             page_separator=page_separator,
+            request_delay=request_delay,
+            enable_rate_limit_retry=enable_rate_limit_retry,
+            max_rate_limit_retries=max_rate_limit_retries,
+            rate_limit_retry_delay=rate_limit_retry_delay,
         )

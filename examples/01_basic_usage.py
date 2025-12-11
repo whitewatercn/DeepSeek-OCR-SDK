@@ -3,6 +3,7 @@ Example 1: Basic Usage
 
 This example demonstrates the basic usage of DeepSeek OCR SDK.
 """
+
 import os
 from deepseek_ocr import DeepSeekOCR
 
