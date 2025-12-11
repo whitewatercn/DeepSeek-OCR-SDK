@@ -4,6 +4,7 @@ Example 2: Batch Processing
 This example demonstrates how to process multiple documents efficiently
 using the BatchProcessor.
 """
+
 import asyncio
 import os
 from pathlib import Path

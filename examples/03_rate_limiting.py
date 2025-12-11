@@ -148,7 +148,11 @@ def example_tpm_rpm_calculation():
 
     print(
         """
-Rate Limit Tiers (from DeepSeek documentation):
+Rate Limit Tiers (from DeepSeek API documentation - verify current values):
+NOTE: These values are examples from the DeepSeek documentation at the time
+of implementation. Please verify the current rate limits for your API tier
+at https://platform.deepseek.com or your API provider's documentation.
+
 - L0: TPM=80,000, RPM=1,000
 - L1: TPM=120,000, RPM=1,200
 - L2: TPM=160,000, RPM=2,000

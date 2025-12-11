@@ -56,6 +56,10 @@ class DeepSeekOCR:
         timeout: Optional[int] = None,
         max_tokens: Optional[int] = None,
         dpi: Optional[int] = None,
+        request_delay: Optional[float] = None,
+        enable_rate_limit_retry: Optional[bool] = None,
+        max_rate_limit_retries: Optional[int] = None,
+        rate_limit_retry_delay: Optional[float] = None,
         **kwargs: str,
     ):
         """
@@ -69,6 +73,14 @@ class DeepSeekOCR:
             timeout: Request timeout in seconds.
             max_tokens: Maximum tokens in response.
             dpi: DPI for PDF to image conversion (150, 200, or 300).
+            request_delay: Delay in seconds between API requests to prevent
+                          rate limiting (0 = no delay).
+            enable_rate_limit_retry: Enable automatic retry on 429 rate
+                                    limit errors.
+            max_rate_limit_retries: Maximum number of retries for rate
+                                   limit errors.
+            rate_limit_retry_delay: Initial delay in seconds before retrying
+                                   after 429 error (uses exponential backoff).
             **kwargs: Additional configuration parameters.
 
         Raises:
@@ -89,6 +101,14 @@ class DeepSeekOCR:
             overrides["max_tokens"] = str(max_tokens)
         if dpi is not None:
             overrides["dpi"] = str(dpi)
+        if request_delay is not None:
+            overrides["request_delay"] = str(request_delay)
+        if enable_rate_limit_retry is not None:
+            overrides["enable_rate_limit_retry"] = enable_rate_limit_retry
+        if max_rate_limit_retries is not None:
+            overrides["max_rate_limit_retries"] = str(max_rate_limit_retries)
+        if rate_limit_retry_delay is not None:
+            overrides["rate_limit_retry_delay"] = str(rate_limit_retry_delay)
         overrides.update(kwargs)
 
         self.config = OCRConfig.from_env(**overrides)
@@ -379,9 +399,10 @@ class DeepSeekOCR:
                     f"Request timed out after {self.config.timeout} seconds"
                 ) from e
 
-        # If we exhausted all retries, raise the last error
+        # If we exhausted all retries due to rate limiting, raise the error
         if last_error:
             raise last_error
+        # This should never happen, but just in case
         raise RateLimitError("Rate limit retries exhausted", status_code=429)
 
     def _make_api_request_sync(self, image_b64: str, prompt: str) -> Dict[str, Any]:
