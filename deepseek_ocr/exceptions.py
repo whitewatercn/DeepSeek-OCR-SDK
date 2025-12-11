@@ -57,3 +57,9 @@ class TimeoutError(DeepSeekOCRError):
     """Raised when an API request times out."""
 
     pass
+
+
+class RateLimitError(APIError):
+    """Raised when API returns a 429 rate limit error."""
+
+    pass

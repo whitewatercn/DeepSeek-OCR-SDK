@@ -8,6 +8,7 @@ import asyncio
 import base64
 import logging
 import re
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -17,7 +18,7 @@ import requests
 
 from .config import OCRConfig
 from .enums import OCRMode
-from .exceptions import APIError, FileProcessingError, TimeoutError
+from .exceptions import APIError, FileProcessingError, RateLimitError, TimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +95,34 @@ class DeepSeekOCR:
         logger.info(
             f"Initialized DeepSeekOCR client with model: {self.config.model_name}"
         )
+        # Track last request time for rate limiting
+        self._last_request_time: Optional[float] = None
+
+    async def _apply_rate_limit_async(self) -> None:
+        """
+        Apply rate limiting delay before making a request (async).
+
+        If request_delay is configured, ensures minimum time between requests.
+        """
+        if self.config.request_delay > 0 and self._last_request_time is not None:
+            elapsed = time.time() - self._last_request_time
+            if elapsed < self.config.request_delay:
+                delay = self.config.request_delay - elapsed
+                logger.debug(f"Rate limiting: waiting {delay:.2f}s before next request")
+                await asyncio.sleep(delay)
+
+    def _apply_rate_limit_sync(self) -> None:
+        """
+        Apply rate limiting delay before making a request (sync).
+
+        If request_delay is configured, ensures minimum time between requests.
+        """
+        if self.config.request_delay > 0 and self._last_request_time is not None:
+            elapsed = time.time() - self._last_request_time
+            if elapsed < self.config.request_delay:
+                delay = self.config.request_delay - elapsed
+                logger.debug(f"Rate limiting: waiting {delay:.2f}s before next request")
+                time.sleep(delay)
 
     def _pdf_page_to_base64(self, doc: fitz.Document, page_num: int, dpi: int) -> str:
         """
@@ -250,7 +279,7 @@ class DeepSeekOCR:
         self, image_b64: str, prompt: str
     ) -> Dict[str, Any]:
         """
-        Make async API request to DeepSeek OCR.
+        Make async API request to DeepSeek OCR with rate limiting and retry.
 
         Args:
             image_b64: Base64-encoded image.
@@ -261,6 +290,7 @@ class DeepSeekOCR:
 
         Raises:
             APIError: If API returns an error.
+            RateLimitError: If rate limit is exceeded and retries exhausted.
             TimeoutError: If request times out.
         """
         headers = {
@@ -288,30 +318,75 @@ class DeepSeekOCR:
 
         timeout = aiohttp.ClientTimeout(total=self.config.timeout)
 
-        try:
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.post(
-                    self.config.base_url, headers=headers, json=payload
-                ) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        raise APIError(
-                            f"API request failed: {error_text}",
-                            status_code=response.status,
-                            response_text=error_text,
-                        )
+        # Retry logic for rate limiting
+        last_error = None
+        for attempt in range(self.config.max_rate_limit_retries + 1):
+            try:
+                # Apply rate limiting delay
+                await self._apply_rate_limit_async()
 
-                    result: Dict[str, Any] = await response.json()
-                    return result
+                # Update last request time
+                self._last_request_time = time.time()
 
-        except asyncio.TimeoutError as e:
-            raise TimeoutError(
-                f"Request timed out after {self.config.timeout} seconds"
-            ) from e
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.post(
+                        self.config.base_url, headers=headers, json=payload
+                    ) as response:
+                        # Handle rate limiting (429)
+                        if response.status == 429:
+                            error_text = await response.text()
+
+                            if (
+                                not self.config.enable_rate_limit_retry
+                                or attempt >= self.config.max_rate_limit_retries
+                            ):
+                                raise RateLimitError(
+                                    f"Rate limit exceeded: {error_text}",
+                                    status_code=429,
+                                    response_text=error_text,
+                                )
+
+                            # Exponential backoff: delay * (2 ^ attempt)
+                            retry_delay = self.config.rate_limit_retry_delay * (
+                                2**attempt
+                            )
+                            logger.warning(
+                                f"Rate limit hit (429), retrying in {retry_delay:.1f}s "
+                                f"(attempt {attempt + 1}/{self.config.max_rate_limit_retries})"
+                            )
+                            await asyncio.sleep(retry_delay)
+                            # Will retry in next iteration
+                            last_error = RateLimitError(
+                                f"Rate limit exceeded: {error_text}",
+                                status_code=429,
+                                response_text=error_text,
+                            )
+                            continue
+
+                        if response.status != 200:
+                            error_text = await response.text()
+                            raise APIError(
+                                f"API request failed: {error_text}",
+                                status_code=response.status,
+                                response_text=error_text,
+                            )
+
+                        result: Dict[str, Any] = await response.json()
+                        return result
+
+            except asyncio.TimeoutError as e:
+                raise TimeoutError(
+                    f"Request timed out after {self.config.timeout} seconds"
+                ) from e
+
+        # If we exhausted all retries, raise the last error
+        if last_error:
+            raise last_error
+        raise RateLimitError("Rate limit retries exhausted", status_code=429)
 
     def _make_api_request_sync(self, image_b64: str, prompt: str) -> Dict[str, Any]:
         """
-        Make synchronous API request to DeepSeek OCR.
+        Make synchronous API request to DeepSeek OCR with rate limiting and retry.
 
         Args:
             image_b64: Base64-encoded image.
@@ -322,6 +397,7 @@ class DeepSeekOCR:
 
         Raises:
             APIError: If API returns an error.
+            RateLimitError: If rate limit is exceeded and retries exhausted.
             TimeoutError: If request times out.
         """
         headers = {
@@ -347,28 +423,60 @@ class DeepSeekOCR:
             "max_tokens": self.config.max_tokens,
         }
 
-        try:
-            response = requests.post(
-                self.config.base_url,
-                headers=headers,
-                json=payload,
-                timeout=self.config.timeout,
-            )
+        # Retry logic for rate limiting
+        for attempt in range(self.config.max_rate_limit_retries + 1):
+            try:
+                # Apply rate limiting delay
+                self._apply_rate_limit_sync()
 
-            if response.status_code != 200:
-                raise APIError(
-                    f"API request failed: {response.text}",
-                    status_code=response.status_code,
-                    response_text=response.text,
+                # Update last request time
+                self._last_request_time = time.time()
+
+                response = requests.post(
+                    self.config.base_url,
+                    headers=headers,
+                    json=payload,
+                    timeout=self.config.timeout,
                 )
 
-            result: Dict[str, Any] = response.json()
-            return result
+                # Handle rate limiting (429)
+                if response.status_code == 429:
+                    if (
+                        not self.config.enable_rate_limit_retry
+                        or attempt >= self.config.max_rate_limit_retries
+                    ):
+                        raise RateLimitError(
+                            f"Rate limit exceeded: {response.text}",
+                            status_code=429,
+                            response_text=response.text,
+                        )
 
-        except requests.Timeout as e:
-            raise TimeoutError(
-                f"Request timed out after {self.config.timeout} seconds"
-            ) from e
+                    # Exponential backoff: delay * (2 ^ attempt)
+                    retry_delay = self.config.rate_limit_retry_delay * (2**attempt)
+                    logger.warning(
+                        f"Rate limit hit (429), retrying in {retry_delay:.1f}s "
+                        f"(attempt {attempt + 1}/{self.config.max_rate_limit_retries})"
+                    )
+                    time.sleep(retry_delay)
+                    continue
+
+                if response.status_code != 200:
+                    raise APIError(
+                        f"API request failed: {response.text}",
+                        status_code=response.status_code,
+                        response_text=response.text,
+                    )
+
+                result: Dict[str, Any] = response.json()
+                return result
+
+            except requests.Timeout as e:
+                raise TimeoutError(
+                    f"Request timed out after {self.config.timeout} seconds"
+                ) from e
+
+        # Should not reach here, but just in case
+        raise RateLimitError("Rate limit retries exhausted", status_code=429)
 
     async def parse_async(
         self,

@@ -27,6 +27,7 @@ from .exceptions import (
     DeepSeekOCRError,
     FileProcessingError,
     InvalidModeError,
+    RateLimitError,
     TimeoutError,
 )
 
@@ -49,6 +50,7 @@ __all__ = [
     "DeepSeekOCRError",
     "ConfigurationError",
     "APIError",
+    "RateLimitError",
     "FileProcessingError",
     "InvalidModeError",
     "TimeoutError",
