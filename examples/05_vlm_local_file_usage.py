@@ -16,7 +16,7 @@ BASE_URL = os.getenv("DS_OCR_BASE_URL", "http://localhost:8000/v1/chat/completio
 client = vlm_client.VLM(api_key=API_KEY, base_url=BASE_URL)
 
 # Path to your local file (PDF or Image)
-file_path = r"/Volumes/512g/202510DHC/DHC_test/test_reports_origin/测试3号 (2).pdf"
+file_path = "./example_document.pdf"  # Use a generic placeholder path
 
 # Check if file exists
 if not os.path.exists(file_path):
