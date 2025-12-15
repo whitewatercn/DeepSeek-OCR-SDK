@@ -122,7 +122,7 @@ class VLMClient:
     """Lightweight VLM client with rate limiting and retry support.
 
     Usage:
-        from deepseek_ocr import vlm
+        from multi_ocr_sdk import vlm
         client = vlm.VLMClient(api_key="xxx", base_url="https://...")
         result = client.chat.completions.create(model="Qwen3-VL-8B", messages=[...])
     """
