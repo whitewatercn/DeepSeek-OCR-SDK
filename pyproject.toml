@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "multi-ocr-sdk"
-version = "0.4.2"
+version = "0.4.3"
 description = "A simple and efficient Python SDK for multi OCR API, such as deepseek OCR, VLM(qwenvl)."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -52,7 +52,7 @@ Issues = "https://github.com/whitewatercn/MULTI-OCR-SDK/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["multi_ocr*"]
+include = ["multi_ocr_sdk*"]
 
 [tool.black]
 line-length = 88
