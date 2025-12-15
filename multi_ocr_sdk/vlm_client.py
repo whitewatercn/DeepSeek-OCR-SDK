@@ -15,11 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from .exceptions import (
-    APIError,
     ConfigurationError,
-    FileProcessingError,
-    RateLimitError,
-    TimeoutError,
 )
 from .basic_utils import FileProcessor, RateLimiter, APIRequester
 
