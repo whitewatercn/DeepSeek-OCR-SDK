@@ -5,7 +5,6 @@ Provides rate limiting and retry logic with support for both
 synchronous and asynchronous operations.
 """
 
-import asyncio
 import logging
 import threading
 import time
@@ -37,44 +36,8 @@ class RateLimiter:
 
         # Track last request time for rate limiting
         self._last_request_time: Optional[float] = None
-        # Locks to ensure thread-safe and async-safe rate limiting
-        self._async_lock: Optional[asyncio.Lock] = None
+        # Locks to ensure thread-safe rate limiting
         self._sync_lock = threading.Lock()
-
-    def _get_async_lock(self) -> asyncio.Lock:
-        """
-        Get or create the async lock for rate limiting.
-
-        Lazy initialization to avoid issues when client is created
-        outside an event loop.
-
-        Returns:
-            asyncio.Lock instance.
-        """
-        if self._async_lock is None:
-            self._async_lock = asyncio.Lock()
-        return self._async_lock
-
-    async def apply_rate_limit_async(self) -> None:
-        """
-        Apply rate limiting delay before making a request (async).
-
-        If request_delay is configured, ensures minimum time between requests.
-        Uses asyncio.Lock to ensure thread-safe access to _last_request_time
-        in concurrent async operations.
-        """
-        if self.request_delay > 0:
-            async with self._get_async_lock():
-                if self._last_request_time is not None:
-                    elapsed = time.time() - self._last_request_time
-                    if elapsed < self.request_delay:
-                        delay = self.request_delay - elapsed
-                        logger.debug(
-                            f"Rate limiting: waiting {delay:.2f}s before next request"
-                        )
-                        await asyncio.sleep(delay)
-                # Update last request time inside the lock
-                self._last_request_time = time.time()
 
     def apply_rate_limit_sync(self) -> None:
         """

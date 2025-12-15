@@ -9,7 +9,6 @@ the existing OCR client to reuse configuration and rate-limit behavior.
 from __future__ import annotations
 
 import os
-import asyncio
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -113,10 +112,6 @@ class _CompletionsAPI:
         """Synchronous completion call."""
         return self._client._make_api_request_sync(model, messages, **kwargs)
 
-    async def create_async(self, model: str, messages: List[Dict[str, Any]], **kwargs: Any) -> Dict[str, Any]:
-        """Asynchronous completion call."""
-        return await self._client._make_api_request_async(model, messages, **kwargs)
-
 
 class _ChatAPI:
     def __init__(self, client: "VLMClient") -> None:
@@ -173,81 +168,6 @@ class VLMClient:
 
         # Provide a chat API surface similar to other SDKs
         self.chat = _ChatAPI(self)
-
-    def _get_async_lock(self) -> asyncio.Lock:
-        return self._rate_limiter._get_async_lock()
-
-    async def parse_async(
-        self,
-        file_path: Union[str, Path],
-        prompt: str,
-        model: Optional[str] = None,
-        dpi: int = 72,
-        pages: Optional[Union[int, List[int]]] = None,
-        timeout: Optional[int] = None,
-        **kwargs: Any,
-    ) -> str:
-        """
-        Process a local file (PDF or image) with VLM asynchronously.
-        
-        Args:
-            file_path: Path to the file.
-            prompt: Text prompt for the VLM.
-            model: Model name (optional).
-            dpi: DPI for rendering PDF pages (default: 72).
-            pages: Specific pages to process (1-indexed).
-            **kwargs: Additional arguments for the API call.
-            
-        Returns:
-            Combined text response from all processed pages.
-        """
-        # Convert file to base64 images using shared utility
-        image_b64_result = FileProcessor.file_to_base64(file_path, dpi, pages)
-        
-        if isinstance(image_b64_result, str):
-            images = [image_b64_result]
-        else:
-            images = image_b64_result
-
-        async def process_page(page_idx: int, image_b64: str) -> str:
-            messages = [
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:image/png;base64,{image_b64}"},
-                        },
-                        {"type": "text", "text": prompt},
-                    ],
-                }
-            ]
-            
-            result = await self.chat.completions.create_async(
-                model=model or self.config.model_name,
-                messages=messages,
-                timeout=timeout,
-                **kwargs
-            )
-            
-            if "choices" in result and len(result["choices"]) > 0:
-                return str(result["choices"][0]["message"]["content"])
-            return ""
-
-        # Process all pages concurrently
-        all_results = await asyncio.gather(
-            *[process_page(idx, img) for idx, img in enumerate(images)],
-            return_exceptions=True,
-        )
-
-        all_texts: List[str] = []
-        for idx, result in enumerate(all_results):
-            if isinstance(result, Exception):
-                logger.error(f"Error processing page {idx + 1}: {result}")
-                raise result
-            all_texts.append(str(result))
-
-        return "\n\n---\n\n".join(all_texts)
 
     def parse(
         self,
@@ -313,31 +233,8 @@ class VLMClient:
 
         return "\n\n---\n\n".join(all_texts)
 
-    async def _apply_rate_limit_async(self) -> None:
-        await self._rate_limiter.apply_rate_limit_async()
-
     def _apply_rate_limit_sync(self) -> None:
         self._rate_limiter.apply_rate_limit_sync()
-
-    async def _make_api_request_async(self, model: str, messages: List[Dict[str, Any]], timeout: Optional[int] = None, **kwargs: Any) -> Dict[str, Any]:
-        headers = {
-            "Authorization": f"Bearer {self.config.api_key}",
-            "Content-Type": "application/json",
-        }
-        payload: Dict[str, Any] = {
-            "model": model or self.config.model_name,
-            "messages": messages,
-            "temperature": kwargs.get("temperature", self.config.temperature),
-            "max_tokens": kwargs.get("max_tokens", self.config.max_tokens),
-        }
-
-        return await self._api_requester.request_async(
-            self.config.base_url,
-            headers,
-            payload,
-            enable_rate_limit_retry=self.config.enable_rate_limit_retry,
-            timeout_override=timeout,
-        )
 
     def _make_api_request_sync(self, model: str, messages: List[Dict[str, Any]], timeout: Optional[int] = None, **kwargs: Any) -> Dict[str, Any]:
         headers = {

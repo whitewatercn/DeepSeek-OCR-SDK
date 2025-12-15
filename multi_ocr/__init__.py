@@ -13,11 +13,9 @@ Features:
     - Simple and clean API
     - Three OCR modes: FREE_OCR, GROUNDING, OCR_IMAGE
     - Intelligent fallback mechanism
-    - Batch processing with progress tracking
-    - Both sync and async support
+    - Synchronous support
 """
 
-from .batch import BatchProcessor, BatchResult, BatchSummary
 from .deepseek_client import DeepSeekOCR
 from .config import OCRConfig
 from .enums import OCRMode
@@ -44,10 +42,6 @@ __all__ = [
     "OCRConfig",
     # Enums
     "OCRMode",
-    # Batch processing
-    "BatchProcessor",
-    "BatchResult",
-    "BatchSummary",
     # VLM support
     "vlm_client",
     "VLMClient",

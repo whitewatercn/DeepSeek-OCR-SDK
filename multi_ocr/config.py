@@ -1,8 +1,13 @@
+import os
+from dataclasses import dataclass
+from typing import Any, Optional
 
+from .basic_utils.base_config import BaseConfig
+from .exceptions import ConfigurationError
 
 
 @dataclass
-class OCRConfig:
+class OCRConfig(BaseConfig):
     """
     Configuration for DeepSeek OCR client.
 
