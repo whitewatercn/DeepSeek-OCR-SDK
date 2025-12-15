@@ -102,8 +102,9 @@ class APIRequester:
                 return result
 
             except requests.Timeout as e:
+                actual_timeout = timeout_override if timeout_override is not None else self.timeout
                 raise TimeoutError(
-                    f"Request timed out after {self.timeout} seconds"
+                    f"Request timed out after {actual_timeout} seconds"
                 ) from e
 
         # Should not reach here, but just in case
