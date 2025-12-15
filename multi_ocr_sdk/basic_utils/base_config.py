@@ -7,7 +7,7 @@ different client implementations.
 
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from ..exceptions import ConfigurationError
 
