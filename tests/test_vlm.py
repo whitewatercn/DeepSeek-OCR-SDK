@@ -1,5 +1,7 @@
 """
-不太懂pytest怎么用，先让ai写了个，大佬完善一下
+Tests for the VLM client module.
+
+Basic tests to ensure VLMClient can be imported and initialized correctly.
 """
 
 import pytest

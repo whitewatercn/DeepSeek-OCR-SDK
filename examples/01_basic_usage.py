@@ -5,6 +5,7 @@ This example demonstrates the basic usage of DeepSeek OCR SDK.
 """
 
 import os
+from pathlib import Path
 from multi_ocr_sdk import DeepSeekOCR
 
 # Set your API key (or use DS_OCR_API_KEY environment variable)
@@ -18,43 +19,58 @@ def main():
 
     # Example 1: Simple document (use FREE_OCR mode - fastest)
     print("Example 1: Processing simple document with FREE_OCR...")
-    try:
-        text = client.parse(
-            "sample_docs/simple_document.pdf",
-            mode="free_ocr",
-        )
-        print(f"Extracted text ({len(text)} chars):")
-        print(text[:500])  # Print first 500 chars
-        print("\n" + "=" * 60 + "\n")
-    except Exception as e:
-        print(f"Error: {e}\n")
+    sample_file = "sample_docs/simple_document.pdf"
+    if not Path(sample_file).exists():
+        print(f"Note: Sample file not found at {sample_file}")
+        print("Please provide your own PDF file to test.\n")
+    else:
+        try:
+            text = client.parse(
+                sample_file,
+                mode="free_ocr",
+            )
+            print(f"Extracted text ({len(text)} chars):")
+            print(text[:500])  # Print first 500 chars
+            print("\n" + "=" * 60 + "\n")
+        except Exception as e:
+            print(f"Error: {e}\n")
 
     # Example 2: Document with complex tables (use GROUNDING mode)
     print("Example 2: Processing document with complex tables...")
-    try:
-        text = client.parse(
-            "sample_docs/complex_table.pdf",
-            mode="grounding",
-        )
-        print(f"Extracted text ({len(text)} chars):")
-        print(text[:500])
-        print("\n" + "=" * 60 + "\n")
-    except Exception as e:
-        print(f"Error: {e}\n")
+    table_file = "sample_docs/complex_table.pdf"
+    if not Path(table_file).exists():
+        print(f"Note: Sample file not found at {table_file}")
+        print("Please provide your own PDF file with tables to test.\n")
+    else:
+        try:
+            text = client.parse(
+                table_file,
+                mode="grounding",
+            )
+            print(f"Extracted text ({len(text)} chars):")
+            print(text[:500])
+            print("\n" + "=" * 60 + "\n")
+        except Exception as e:
+            print(f"Error: {e}\n")
 
     # Example 3: Custom DPI for better quality
     print("Example 3: Processing with custom DPI...")
-    try:
-        text = client.parse(
-            "sample_docs/simple_document.pdf",
-            mode="free_ocr",
-            dpi=300,  # Higher DPI for better quality (slower, larger)
-        )
-        print(f"Extracted text ({len(text)} chars):")
-        print(text[:500])
-        print("\n" + "=" * 60 + "\n")
-    except Exception as e:
-        print(f"Error: {e}\n")
+    sample_file = "sample_docs/simple_document.pdf"
+    if not Path(sample_file).exists():
+        print(f"Note: Sample file not found at {sample_file}")
+        print("Please provide your own PDF file to test.\n")
+    else:
+        try:
+            text = client.parse(
+                sample_file,
+                mode="free_ocr",
+                dpi=300,  # Higher DPI for better quality (slower, larger)
+            )
+            print(f"Extracted text ({len(text)} chars):")
+            print(text[:500])
+            print("\n" + "=" * 60 + "\n")
+        except Exception as e:
+            print(f"Error: {e}\n")
 
 
 

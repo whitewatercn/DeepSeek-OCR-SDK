@@ -8,7 +8,9 @@ Note: BatchProcessor and async features have been removed in this version.
 """
 
 import os
-from multi_ocr_sdk import DeepSeekOCR, RateLimitError
+from pathlib import Path
+from multi_ocr_sdk import DeepSeekOCR
+from multi_ocr_sdk.exceptions import RateLimitError
 
 # Set your API key
 API_KEY = os.getenv("DS_OCR_API_KEY", "your_api_key_here")
@@ -27,7 +29,13 @@ def example_basic_rate_limiting():
     )
 
     print("Processing 3 documents with 2-second delay between requests...")
+    # Check if sample docs exist, otherwise skip
     files = ["sample_docs/doc1.pdf", "sample_docs/doc2.pdf", "sample_docs/doc3.pdf"]
+    files = [f for f in files if Path(f).exists()]
+    
+    if not files:
+        print("Note: No sample documents found. Please add PDF files to sample_docs/")
+        return
 
     for i, file in enumerate(files, 1):
         print(f"\nProcessing file {i}/{len(files)}: {file}")
@@ -88,6 +96,11 @@ def example_combined_rate_limiting():
     print("Using both request delay (1s) and auto-retry for optimal safety")
 
     files = ["sample_docs/doc1.pdf", "sample_docs/doc2.pdf"]
+    files = [f for f in files if Path(f).exists()]
+    
+    if not files:
+        print("Note: No sample documents found. Please add PDF files to sample_docs/")
+        return
 
     for i, file in enumerate(files, 1):
         print(f"\nProcessing file {i}/{len(files)}: {file}")
@@ -123,6 +136,11 @@ def example_batch_with_rate_limiting():
     # concurrent processing if needed.
     
     files = ["sample_docs/doc1.pdf", "sample_docs/doc2.pdf", "sample_docs/doc3.pdf"]
+    files = [f for f in files if Path(f).exists()]
+    
+    if not files:
+        print("Note: No sample documents found. Please add PDF files to sample_docs/")
+        return
     
     for i, file in enumerate(files, 1):
         print(f"\nProcessing file {i}/{len(files)}: {file}")
