@@ -1,26 +1,36 @@
 # 简介
+[![PyPI version](https://img.shields.io/pypi/v/multi-ocr-sdk.svg)](https://pypi.org/project/multi-ocr-sdk/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 **MULTI-OCR-SDK** 是一个简单高效的 Python SDK，用于调用各类OCR API（现已支持deepseek-OCR、视觉模型VLM）。它提供了简洁、生产级的接口，可以高精度、高性能地将文档（PDF、图片）转换为 Markdown 文本。
 
 本项目基于[DeepSeek-OCR-SDK](https://github.com/bukely/DeepSeek-OCR-SDK)进一步开发，感谢发起人[@BukeLy](https://github.com/BukeLy)对本项目的支持
+
 # 核心特征
+
 - **简单易用**：API 简洁直观，学习成本低
 - **批量处理**：高效处理多个文档，带进度跟踪
 - **异步 & 同步**：完整支持异步和同步工作流（暂时不做异步，太难了）
 - **类型提示**：100% 类型覆盖，更好的 IDE 支持（还没实现）
 
 # 安装
+
 使用 pip
+
 ```bash
 pip install multi-ocr-sdk
 ```
 
 使用 uv（推荐）
+
 ```bash
 uv add multi-ocr-sdk
 ```
 
 从源码安装
+
 ```bash
 # 克隆仓库
 git clone https://github.com/B-Beginner/MULTI-OCR-SDK
@@ -58,14 +68,14 @@ print(result)
 ```
 
 # DeepSeek-OCR使用方法
+
 ### 核心特性
+
 - **三种 OCR 模式**：
   - `FREE_OCR`：快速模式，适用于 80% 的场景（3.95-10.95秒）
   - `GROUNDING`：高级模式，适用于复杂表格（5.18-8.31秒）
   - `OCR_IMAGE`：详细模式，提供词级别提取（19-26秒）
 - **智能回退**：自动切换模式以获得更好的质量
-
-
 
 ### 快速开始
 
@@ -164,15 +174,14 @@ text = client.parse("multi_page.pdf", pages=list(range(1, 6)))  # 第 1-5 页
 
 **注意**：处理多个页面将按比例增加 API 使用量和费用。每个页面都独立处理，并带有智能的逐页回退机制。
 
-
 ### 模式选择指南
 
-| 文档类型 | 推荐模式 | 原因 |
-|---------|---------|------|
-| 简单文本（发票、信件） | `FREE_OCR` | 最快，80% 准确率 |
-| 复杂表格（≥20 行） | `GROUNDING` | 更好的结构保留 |
-| 简单表格（<10 行） | `FREE_OCR` | 避免截断问题 |
-| 混合内容 | `GROUNDING` | 处理复杂性好 |
+| 文档类型               | 推荐模式      | 原因             |
+| ---------------------- | ------------- | ---------------- |
+| 简单文本（发票、信件） | `FREE_OCR`  | 最快，80% 准确率 |
+| 复杂表格（≥20 行）    | `GROUNDING` | 更好的结构保留   |
+| 简单表格（<10 行）     | `FREE_OCR`  | 避免截断问题     |
+| 混合内容               | `GROUNDING` | 处理复杂性好     |
 
 ### 配置
 
@@ -196,6 +205,7 @@ export DS_OCR_RATE_LIMIT_RETRY_DELAY=5.0  # 重试前的初始延迟（使用指
 ```
 
 **可用的 API 提供商**：
+
 - **硅基流动（SiliconFlow）**：`https://api.siliconflow.cn/v1/chat/completions` (已验证 ✅)
 - **其他**：联系第三方 API 提供商以获取 DeepSeek-OCR 支持
 
@@ -242,16 +252,11 @@ text1 = client.parse("doc1.pdf")  # 立即发起请求
 text2 = client.parse("doc2.pdf")  # 从上次请求起等待 2 秒
 ```
 
-
-
-
 ### DPI 推荐
 
 - **150 DPI**：可能产生幻觉，不推荐
 - **200 DPI**：⭐ 最佳平衡（推荐）
 - **300 DPI**：文件更大，质量提升不明显
-
-
 
 ### 开发
 
