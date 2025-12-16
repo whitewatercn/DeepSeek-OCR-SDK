@@ -12,7 +12,7 @@ license = "MIT"
 authors = [
     {name = "whitewatercn", email = "whitewatercn@outlook.com"}
 ]
-keywords = ["ocr", "deepseek", "document-processing", "pdf", "image-to-text"]
+keywords = ["ocr", "deepseek", "document-processing", "pdf", "image-to-text","vlm"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
