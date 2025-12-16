@@ -1,5 +1,5 @@
 """
-Vision-Language Model (VLM) client for DeepSeek OCR SDK.
+Vision-Language Model (VLM) client for OCR SDK.
 
 This module provides a lightweight client wrapper for calling VLM-style
 chat completions (image + text). It mirrors the design patterns used by
