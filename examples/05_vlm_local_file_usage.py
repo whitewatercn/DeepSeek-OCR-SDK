@@ -6,7 +6,6 @@ Replace `API_KEY` and `BASE_URL` with your values or set
 """
 
 import os
-from pprint import pprint
 from multi_ocr_sdk import VLMClient
 
 
