@@ -1,6 +1,7 @@
 # 简介
 
 **MULTI-OCR-SDK** 是一个简单高效的 Python SDK，用于调用各类OCR API（现已支持deepseek-OCR、视觉模型VLM）。它提供了简洁、生产级的接口，可以高精度、高性能地将文档（PDF、图片）转换为 Markdown 文本。
+
 本项目基于[DeepSeek-OCR-SDK](https://github.com/bukely/DeepSeek-OCR-SDK)进一步开发，感谢发起人[@BukeLy](https://github.com/BukeLy)对本项目的支持
 # 核心特征
 - **简单易用**：API 简洁直观，学习成本低
@@ -9,16 +10,17 @@
 - **类型提示**：100% 类型覆盖，更好的 IDE 支持（还没实现）
 
 # 安装
-## 使用 pip
+使用 pip
 ```bash
 pip install multi-ocr-sdk
 ```
 
-## 使用 uv（推荐）
+使用 uv（推荐）
 ```bash
 uv add multi-ocr-sdk
 ```
-## 从源码安装
+
+从源码安装
 ```bash
 # 克隆仓库
 git clone https://github.com/B-Beginner/MULTI-OCR-SDK
