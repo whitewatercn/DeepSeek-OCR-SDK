@@ -15,6 +15,7 @@ from .exceptions import (
     ConfigurationError,
 )
 from .basic_utils import FileProcessor, RateLimiter, APIRequester, BaseConfig
+from .basic_utils.basic_logger import setup_file_logger
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class VLMConfig(BaseConfig):
     enable_rate_limit_retry: bool = True # 如果遇到429报错（限流）是否重试
     max_rate_limit_retries: int = 3 # 最大重试次数
     rate_limit_retry_delay: float = 5.0 # 重试的间隔
+    enable_log: bool = False  # 如果为 True，则在运行目录创建 multi-ocr-sdk-logs 并写入日志文件
 
     @classmethod
     def from_env(cls, **overrides: Any) -> "VLMConfig":
@@ -54,6 +56,7 @@ class VLMConfig(BaseConfig):
             "request_delay": get_env("VLM_REQUEST_DELAY", type_func=float),
             "enable_rate_limit_retry": get_env("VLM_ENABLE_RATE_LIMIT_RETRY", type_func=bool),
             "max_rate_limit_retries": get_env("VLM_MAX_RATE_LIMIT_RETRIES", type_func=int),
+            "enable_log": get_env("VLM_ENABLE_LOG", type_func=bool),
             "rate_limit_retry_delay": get_env("VLM_RATE_LIMIT_RETRY_DELAY", type_func=float),
         }
 
@@ -115,6 +118,7 @@ class VLMClient:
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
         request_delay: Optional[float] = None,
+        enable_log: Optional[bool] = None,
         **overrides: Any,
     ) -> None:
         # 设置client要使用的变量
@@ -126,6 +130,7 @@ class VLMClient:
             "max_tokens": max_tokens,
             "temperature": temperature,
             "request_delay": request_delay,
+            "enable_log": enable_log,
             # "enable_rate_limit_retry": enable_rate_limit_retry,
             # "max_rate_limit_retries": max_rate_limit_retries,
             # "rate_limit_retry_delay": rate_limit_retry_delay,
@@ -133,6 +138,11 @@ class VLMClient:
         config_args.update(overrides)
         
         self.config = VLMConfig.from_env(**config_args)
+
+        # 如果启用了日志功能，委托 basic_logger.setup_file_logger 去创建目录和文件处理器
+        if getattr(self.config, "enable_log", False):
+            log_file = setup_file_logger()
+            logger.info(f"Logging enabled. Writing logs to {log_file}")
         
         # 初始化 RateLimiter 和 APIRequester
         self._rate_limiter = RateLimiter(

@@ -24,8 +24,9 @@ else:
     try:
         client = VLMClient(
             api_key='test_api_key',
-            base_url='http://10.131.102.25:8000/v1',
+            base_url='http://test.com/v1',
             model='Qwen3-VL-8B',
+            enable_log=True
         )
         result = client.parse(
             file_path=file_path,

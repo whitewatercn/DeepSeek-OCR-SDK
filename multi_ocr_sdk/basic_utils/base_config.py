@@ -1,9 +1,9 @@
+# 20251219开始人工审阅
 """
-Base configuration class for API clients.
+通用的基本参数配置模块。
+很多参数在多个client里都会用到
+"""
 
-Provides common configuration management functionality shared across
-different client implementations.
-"""
 
 import os
 from dataclasses import dataclass
@@ -14,21 +14,6 @@ from ..exceptions import ConfigurationError
 
 @dataclass
 class BaseConfig:
-    """
-    Base configuration for API clients.
-
-    Attributes:
-        api_key: API key for authentication (required).
-        base_url: Base URL for the API endpoint (required).
-        timeout: Request timeout in seconds (default: 60).
-        max_tokens: Maximum tokens in response (default: 4000).
-        temperature: Temperature for response generation (default: 0.0).
-        request_delay: Delay in seconds between API requests (default: 0.0).
-        enable_rate_limit_retry: Enable automatic retry on 429 errors (default: True).
-        max_rate_limit_retries: Maximum number of retries for rate limit errors (default: 3).
-        rate_limit_retry_delay: Initial delay in seconds before retrying (default: 5.0).
-    """
-
     api_key: str
     base_url: str
     timeout: int = 60
