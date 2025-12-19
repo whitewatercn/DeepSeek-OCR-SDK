@@ -14,17 +14,20 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from .exceptions import (
     ConfigurationError,
 )
-from .basic_utils import FileProcessor, RateLimiter, APIRequester
+from .basic_utils import FileProcessor, RateLimiter, APIRequester, BaseConfig
 
 logger = logging.getLogger(__name__)
 
 # 20251219开始人工审阅
-@dataclass
-class VLMConfig:
-    # 规定有哪些参数，以及这些参数的数据类型、默认值
-    api_key: str
-    base_url: str
-    model_name: str
+"""
+kw_only=True 是一个 python3.10 及以上版本 dataclass 的参数
+启用了这个参数以后，有默认值的字段可省略（使用默认值），无默认值的字段必须填写
+"""
+@dataclass(kw_only=True)
+class VLMConfig(BaseConfig):
+    """VLM-specific configuration that reuses common fields/validation from BaseConfig."""
+    # VLM 特有的字段；常见字段（如 api_key、base_url、timeout 等）由 BaseConfig 提供并校验
+    model: str
     timeout: int = 60
     max_tokens: int = 8000 #一般的模型最大传入token为8192，此处设置为8000
     temperature: float = 0.0 # 温度越小，幻觉越少，OCR场景的温度设置为0
@@ -32,34 +35,25 @@ class VLMConfig:
     enable_rate_limit_retry: bool = True # 如果遇到429报错（限流）是否重试
     max_rate_limit_retries: int = 3 # 最大重试次数
     rate_limit_retry_delay: float = 5.0 # 重试的间隔
-    concurrency_num: int = 1 # 并发数
 
     @classmethod
     def from_env(cls, **overrides: Any) -> "VLMConfig":
         """
-        读取环境变量并创建配置实例VLMConfig，之后这个实例会被VLMClient使用。
+        Create configuration from environment variables and optional overrides.
+        Uses BaseConfig._get_env helper to read and convert environment values.
         """
-        def get_env(key: str, default: Any = None, type_func: Any = str) -> Any:
-            val = os.getenv(key)
-            if val is None:
-                return default
-            if type_func is bool:
-                return val.lower() in ("true", "1", "yes", "on")
-            return type_func(val)
+        get_env = BaseConfig._get_env
 
-
-        # 加载环境变量
         env_config = {
             "api_key": get_env("VLM_API_KEY"),
             "base_url": get_env("VLM_BASE_URL"),
-            "model_name": get_env("VLM_MODEL_NAME"),
+            "model": get_env("VLM_MODEL"),
             "timeout": get_env("VLM_TIMEOUT", type_func=int),
             "max_tokens": get_env("VLM_MAX_TOKENS", type_func=int),
             "temperature": get_env("VLM_TEMPERATURE", type_func=float),
             "request_delay": get_env("VLM_REQUEST_DELAY", type_func=float),
             "enable_rate_limit_retry": get_env("VLM_ENABLE_RATE_LIMIT_RETRY", type_func=bool),
             "max_rate_limit_retries": get_env("VLM_MAX_RATE_LIMIT_RETRIES", type_func=int),
-            "concurrency_num": get_env("VLM_CONCURRENCY_NUM", type_func=int),
             "rate_limit_retry_delay": get_env("VLM_RATE_LIMIT_RETRY_DELAY", type_func=float),
         }
 
@@ -72,25 +66,13 @@ class VLMConfig:
         return cls(**env_config)
 
     def __post_init__(self) -> None:
-        """
-        验证配置参数的有效性，如果配置参数无效，提示用户修改
-        """
-        if not self.api_key:
-            raise ConfigurationError("VLM API key is required.")
-        if not self.model_name:
-            raise ConfigurationError("VLM model_name is required.")
-        if not self.base_url:
-            raise ConfigurationError("VLM base_url is required.")
-        if self.timeout <= 0:
-            raise ConfigurationError("timeout must be > 0")
-        if self.request_delay < 0:
-            raise ConfigurationError("request_delay must be >= 0")
-        if self.max_rate_limit_retries < 0:
-            raise ConfigurationError("max_rate_limit_retries must be >= 0")
-        if self.concurrency_num < 1:
-            raise ConfigurationError("concurrency_num must be >= 1")
-        if self.rate_limit_retry_delay < 0:
-            raise ConfigurationError("rate_limit_retry_delay must be >= 0")
+        """Validate configuration and perform VLM-specific normalization."""
+        # 使用 BaseConfig 提供的通用校验
+        super().__post_init__()
+
+        # VLM 特有的校验
+        if not self.model:
+            raise ConfigurationError("VLM model is required.")
 
         # 规范化 base_url，确保它指向正确的端点 xxx.com/v1/chat/completions
         if self.base_url.endswith("/v1"):
@@ -128,19 +110,18 @@ class VLMClient:
         self,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
-        model_name: Optional[str] = None,
+        model: Optional[str] = None,
         timeout: Optional[int] = None,
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
         request_delay: Optional[float] = None,
-        concurrency_num: Optional[int] = None,
         **overrides: Any,
     ) -> None:
         # 设置client要使用的变量
         config_args = {
             "api_key": api_key,
             "base_url": base_url,
-            "model_name": model_name,
+            "model": model,
             "timeout": timeout,
             "max_tokens": max_tokens,
             "temperature": temperature,
@@ -148,8 +129,6 @@ class VLMClient:
             # "enable_rate_limit_retry": enable_rate_limit_retry,
             # "max_rate_limit_retries": max_rate_limit_retries,
             # "rate_limit_retry_delay": rate_limit_retry_delay,
-            "concurrency_num": concurrency_num
-
         }
         config_args.update(overrides)
         
@@ -196,7 +175,7 @@ class VLMClient:
             call_kwargs["max_tokens"] = max_tokens
 
         result = self.chat.completions.create(
-            model=model or self.config.model_name,
+            model=model or self.config.model,
             messages=messages,
             timeout=timeout,
             **call_kwargs
@@ -235,8 +214,8 @@ class VLMClient:
 
         logger.info(f"Converted to {len(images)} images for processing")
 
-        # 确定并发数
-        actual_concurrency = concurrency_num or self.config.concurrency_num
+        # 确定并发数（仅在 parse 层面生效，client 级别不再保存默认并发）
+        actual_concurrency = concurrency_num if concurrency_num is not None else 1
         if actual_concurrency < 1:
             actual_concurrency = 1
 
@@ -301,7 +280,7 @@ class VLMClient:
             "Content-Type": "application/json",
         }
         payload = {
-            "model": model or self.config.model_name,
+            "model": model or self.config.model,
             "messages": messages,
             "temperature": kwargs.get("temperature", self.config.temperature),
             "max_tokens": kwargs.get("max_tokens", self.config.max_tokens),
