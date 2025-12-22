@@ -63,7 +63,6 @@ client = VLMClient(
 result = client.parse(
     file_path=file_path,
     prompt="你是一个ocr机器人，识别输入的文件内容，输出为markdown格式，尽可能保留图表等格式信息，你不需要评论概括文件内容，只需要输出就行",
-    model="Qwen3-VL-8B",
     # timeout=100, # 可选参数，默认60s，如果文件很大，VLM需要处理很久，timeout需要设置长一些
     # dpi=60  # 可选参数，默认72，DPI越低，图片越糊，消耗的输入token越少，识别效果越差，自行调整至合适比例
     # pages=[1,2] # 可选参数，默认全部识别，如果是处理单张图片或者单页pdf不需要这个参数，如果是处理多页pdf可以通过这个参数处理指定页
