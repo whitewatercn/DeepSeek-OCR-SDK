@@ -35,7 +35,7 @@ class BaseConfig:
         if self.max_tokens <= 0:
             raise ConfigurationError(f"max_tokens must be positive. Got: {self.max_tokens}")
         if self.request_delay < 0:
-            raise ConfigurationError(f"request_delay must be positive. Got: {self.request_delay}")
+            raise ConfigurationError(f"request_delay must be non-negative. Got: {self.request_delay}")
         if self.max_rate_limit_retries < 0:
             raise ConfigurationError(f"max_rate_limit_retries must be non-negative. Got: {self.max_rate_limit_retries}")
         if self.rate_limit_retry_delay < 0:
