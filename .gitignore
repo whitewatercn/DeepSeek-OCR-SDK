@@ -65,3 +65,7 @@ examples/sample_docs/*.png
 examples/sample_docs/*.jpg
 !examples/sample_docs/README.md
 CLAUDE.md
+
+# logs
+multi-ocr-sdk-logs/
+logs/

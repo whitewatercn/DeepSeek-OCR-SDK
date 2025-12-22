@@ -1,4 +1,5 @@
 # 简介
+
 [![PyPI version](https://img.shields.io/pypi/v/multi-ocr-sdk.svg)](https://pypi.org/project/multi-ocr-sdk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
@@ -11,8 +12,7 @@
 # 核心特征
 
 - **简单易用**：API 简洁直观，学习成本低
-- **批量处理**：高效处理多个文档，带进度跟踪
-- **异步 & 同步**：完整支持异步和同步工作流（暂时不做异步，太难了）
+- **并发执行**：完整并发执行，快速处理多页文档
 - **类型提示**：100% 类型覆盖，更好的 IDE 支持（还没实现）
 
 # 安装
@@ -53,15 +53,21 @@ API_KEY = "your_api_key_here"
 BASE_URL = "http://your_url/v1/chat/completions"
 file_path = "./examples/example_files/DeepSeek_OCR_paper_mini.pdf" 
 
-client = VLMClient(api_key=API_KEY, base_url=BASE_URL)
+client = VLMClient(
+    api_key='test_api_key', # 必填
+    base_url='http://test.com/v1', # 必填，一般以/v1，或者/v1/completions结尾
+    model='Qwen3-VL-8B', # 必填，模型名
+    enable_log=True # 可选参数，是否启用日志功能
+)
 
 result = client.parse(
     file_path=file_path,
     prompt="你是一个ocr机器人，识别输入的文件内容，输出为markdown格式，尽可能保留图表等格式信息，你不需要评论概括文件内容，只需要输出就行",
-    model="Qwen3-VL-8B",
     # timeout=100, # 可选参数，默认60s，如果文件很大，VLM需要处理很久，timeout需要设置长一些
     # dpi=60  # 可选参数，默认72，DPI越低，图片越糊，消耗的输入token越少，识别效果越差，自行调整至合适比例
-    # pages=[1,2] # 可选参数，如果是处理单张图片或者单页pdf不需要这个参数，如果是处理多页pdf默认处理所有页，可以通过这个参数处理指定页
+    # pages=[1,2] # 可选参数，默认全部识别，如果是处理单张图片或者单页pdf不需要这个参数，如果是处理多页pdf可以通过这个参数处理指定页
+    # concurrency_num=5,  # 可选参数，默认为1（即不并发），如果需要并发处理一个pdf里的多个页面，可以调高该参数
+    # max_tokens=8000  # 可选参数，默认8192，每个模型支持的最大token数不同，不要设为模型上限，因为 prompt 也占 token；如果模型上限是8192，建议max_token略小一些，留出冗余给文字prompt，比如此处设为8000
 
 )
 print(result)
@@ -285,6 +291,7 @@ uv run pytest
 #### 代码质量
 
 > ⚠️ 以下命令暂时不可用，因依赖尚未完善，预计将在未来版本中支持。
+
 ```bash
 # 格式化代码
 uv run black multi_ocr_sdk/
