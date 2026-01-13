@@ -6,7 +6,7 @@ from multi_ocr_sdk import DeepSeekOCR
 
 
 API_KEY = "your_api_key_here"
-BASE_URL = "http://10.131.101.39:8004//v1/chat/completions"
+BASE_URL = "http://your-server:8004/v1/chat/completions"  # Replace with your actual DeepSeek OCR server URL
 
 
 client = DeepSeekOCR(
